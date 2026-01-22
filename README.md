@@ -90,9 +90,16 @@ sudo systemctl stop kuma-probes.timer
 sudo systemctl stop kuma-probes.service
 ```
 
+查看状态：
+```bash
+sudo systemctl status kuma-probes.timer
+sudo systemctl status kuma-probes.service
+```
+
 重新启用：
 ```bash
 sudo systemctl enable --now kuma-probes.timer
+sudo systemctl enable kuma-probes.service --now
 ```
 
 ---

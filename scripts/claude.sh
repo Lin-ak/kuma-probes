@@ -28,8 +28,10 @@ prefix="$(node_prefix)"
 status="down"
 if [[ $ec -ne 0 || -z "$eff" || -z "$code" ]]; then
   msg="Claude: Failed (Network) (${prefix}Egress:$loc)"
+elif [[ "$code" == "403" ]]; then
+  msg="Claude: No/WAF (${prefix}Egress:$loc)"
 elif [[ "$code" =~ ^[45] ]]; then
-  msg="Claude: Failed (HTTP $code) (${prefix}Egress:$loc)"
+  msg="Claude: Failed (${prefix}Egress:$loc)"
 elif [[ "$eff" == "https://www.anthropic.com/app-unavailable-in-region" ]]; then
   msg="Claude: No (${prefix}Egress:$loc)"
 elif [[ "$eff" == "https://claude.ai/" || "$eff" == https://claude.ai/* ]]; then
