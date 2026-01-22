@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Kuma Probes every minute
+
+[Timer]
+OnBootSec=30
+OnUnitActiveSec=60
+RandomizedDelaySec=15
+Persistent=true
+
+[Install]
+WantedBy=timers.target

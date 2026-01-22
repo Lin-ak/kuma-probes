@@ -1,0 +1,11 @@
+[Unit]
+Description=Kuma Probes Runner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=kuma-probe
+Group=kuma-probe
+WorkingDirectory=/opt/kuma-probes
+ExecStart=/opt/kuma-probes/run_all.sh
