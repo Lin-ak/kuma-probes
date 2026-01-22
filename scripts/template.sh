@@ -10,9 +10,6 @@ source "$ROOT_DIR/lib/common.sh"
 PUSH_URL="${KUMA_XXX_PUSH:-}"
 [[ -z "$PUSH_URL" ]] && exit 0
 
-prefix="$(node_prefix)"
-loc="$(cf_loc)"; [[ -z "$loc" ]] && loc="UNK"
-
 start="$(ms_now)"
 
 # 2) 执行你的探测逻辑（下面是示例）
@@ -20,13 +17,17 @@ out="$(curl_text "https://example.com")"
 ec=$?
 ping="$(elapsed_ms "$start")"
 
-status="down"
-msg="XXX: Failed (${prefix}Egress:$loc)"
-
+region=""
 if [[ $ec -eq 0 ]]; then
+  region="$(cf_loc)"
+fi
+
+status="down"
+if [[ -n "$region" ]]; then
   status="up"
-  msg="XXX: Yes (${prefix}Egress:$loc)"
+else
+  region="UNK"
 fi
 
 # 3) 推送到 Kuma
-push_kuma "$PUSH_URL" "$status" "$msg" "$ping"
+push_kuma "$PUSH_URL" "$status" "XXX: Region:$region" "$ping"

@@ -13,11 +13,8 @@ TIKTOK_UA="${TIKTOK_UA:-$UA_BROWSER}"
 TIKTOK_LANG="${TIKTOK_LANG:-en-US,en;q=0.9}"
 
 extract_region() {
-  grep -oE '"region"\s*:\s*"[A-Za-z]{2}"' | head -n1 | sed -E 's/.*"([A-Za-z]{2})".*/\1/' | tr '[:lower:]' '[:upper:]'
+  sed 's/\\"/"/g' | grep -oE '"region"\s*:\s*"[A-Za-z]{2}"' | head -n1 | sed -E 's/.*"([A-Za-z]{2})".*/\1/' | tr '[:lower:]' '[:upper:]'
 }
-
-prefix="$(node_prefix)"
-loc="$(cf_loc)"; [[ -z "$loc" ]] && loc="UNK"
 
 start="$(ms_now)"
 html="$(curl_text "$TIKTOK_URL" -A "$TIKTOK_UA")"
@@ -25,13 +22,13 @@ ec=$?
 ping="$(elapsed_ms "$start")"
 
 if [[ $ec -ne 0 ]]; then
-  push_kuma "$PUSH_URL" "down" "TikTok: Failed (Network) (${prefix}Egress:$loc)" "$ping"
+  push_kuma "$PUSH_URL" "down" "TikTok: Region:UNK" "$ping"
   exit 0
 fi
 
 region="$(printf '%s' "$html" | extract_region)"
 if [[ -n "$region" ]]; then
-  push_kuma "$PUSH_URL" "up" "TikTok: Yes (Region:$region) (${prefix}Egress:$loc)" "$ping"
+  push_kuma "$PUSH_URL" "up" "TikTok: Region:$region" "$ping"
   exit 0
 fi
 
@@ -44,13 +41,13 @@ ec2=$?
 ping2="$(elapsed_ms "$start2")"
 
 if [[ $ec2 -ne 0 ]]; then
-  push_kuma "$PUSH_URL" "down" "TikTok: Failed (${prefix}Egress:$loc)" "$ping2"
+  push_kuma "$PUSH_URL" "down" "TikTok: Region:UNK" "$ping2"
   exit 0
 fi
 
 region2="$(printf '%s' "$html2" | extract_region)"
 if [[ -n "$region2" ]]; then
-  push_kuma "$PUSH_URL" "up" "TikTok: IDC IP (Region:$region2) (${prefix}Egress:$loc)" "$ping2"
+  push_kuma "$PUSH_URL" "up" "TikTok: Region:$region2" "$ping2"
 else
-  push_kuma "$PUSH_URL" "down" "TikTok: Failed (${prefix}Egress:$loc)" "$ping2"
+  push_kuma "$PUSH_URL" "down" "TikTok: Region:UNK" "$ping2"
 fi

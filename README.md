@@ -5,6 +5,7 @@
 - **同一台机器运行所有脚本**（`run_all.sh` 自动遍历 `scripts/`）
 - **systemd timer** 每分钟自动执行（可修改频率）
 - 每台机器只需要改一份 `config.env`（token/节点名/代理等）
+- 所有脚本统一上报格式：`Service: Region:<XX>`，只有能取到区域时才会上报 `up`
 
 ---
 
@@ -51,7 +52,6 @@ sudo nano config.env
 ```
 
 至少需要填：
-- `NODE_NAME`：节点名（例如 `SG-1` / `US-1`）
 - `KUMA_CLAUDE_PUSH`、`KUMA_CHATGPT_PUSH`、`KUMA_GEMINI_PUSH`、`KUMA_TIKTOK_PUSH`、`KUMA_SUNLOGIN_PUSH`：各脚本对应的 Push URL（每个区域都不同的 token）
 
 ### 1.3 一键安装并启动定时任务

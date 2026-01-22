@@ -123,29 +123,19 @@ country_code="$(get_country_code \
 
 ping="$(elapsed_ms "$start")"
 
-state="Failed"
-kuma_status="down"
-
-if [[ $api_ec -eq 0 && $fav_ec -eq 0 ]]; then
-  if [[ "$hit_unsupported" == "false" && "$web_blocked" == "false" ]]; then
-    state="Yes"
-    kuma_status="up"
-  elif [[ "$hit_unsupported" == "true" && "$web_blocked" == "true" ]]; then
-    state="No"
-  elif [[ "$hit_unsupported" == "true" && "$web_blocked" == "false" ]]; then
-    state="Website Only"
-  elif [[ "$hit_unsupported" == "false" && "$web_blocked" == "true" ]]; then
-    state="APP Only"
-  else
-    state="Failed"
-  fi
+region="$country_code"
+status="down"
+if [[ -n "$region" && "$region" != "UNK" ]]; then
+  status="up"
+else
+  region="UNK"
 fi
 
-msg="ChatGPT: $state (Region: $country_code)"
+msg="ChatGPT: Region:$region"
 
 if [[ "${DEBUG_CHATGPT:-0}" == "1" ]]; then
   echo "$msg"
-  echo "apiExit=$api_ec apiCode=$api_code unsupported=$hit_unsupported | webExit=$fav_ec webCode=$fav_code | pingMs=$ping"
+  echo "region=$region pingMs=$ping"
 fi
 
-push_kuma "$PUSH_URL" "$kuma_status" "$msg" "$ping"
+push_kuma "$PUSH_URL" "$status" "$msg" "$ping"

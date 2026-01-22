@@ -9,15 +9,13 @@ PUSH_URL="${KUMA_SUNLOGIN_PUSH:-}"
 [[ -z "$PUSH_URL" ]] && exit 0
 
 HOST="${SUNLOGIN_HOST:-sunlogin.oray.com.w.kunluncan.com}"
-prefix="$(node_prefix)"
-loc="$(cf_loc)"; [[ -z "$loc" ]] && loc="UNK"
 
 start="$(ms_now)"
 ip="$(dig +short A "$HOST" | head -n1)"
 ping="$(elapsed_ms "$start")"
 
 if [[ -z "$ip" ]]; then
-  push_kuma "$PUSH_URL" "down" "Sunlogin: DNS Failed (Host:$HOST) (${prefix}Egress:$loc)" "$ping"
+  push_kuma "$PUSH_URL" "down" "Sunlogin: Region:UNK" "$ping"
   exit 0
 fi
 
@@ -25,16 +23,21 @@ fi
 geo="$(curl_text "https://free.freeipapi.com/api/json/$ip")"
 ec=$?
 if [[ $ec -ne 0 ]]; then
-  push_kuma "$PUSH_URL" "up" "Sunlogin: IP=$ip (Geo:UNK) (${prefix}Egress:$loc)" "$ping"
+  push_kuma "$PUSH_URL" "down" "Sunlogin: Region:UNK" "$ping"
   exit 0
 fi
 
 if command -v jq >/dev/null 2>&1; then
-  country="$(printf '%s' "$geo" | jq -r '.countryCode // "UNK"')"
-  region="$(printf '%s' "$geo" | jq -r '.regionName // ""')"
-  city="$(printf '%s' "$geo" | jq -r '.cityName // ""')"
+  country="$(printf '%s' "$geo" | jq -r '.countryCode // ""')"
 else
-  country="UNK"; region=""; city=""
+  country="$(printf '%s' "$geo" | grep -oE '"countryCode"\s*:\s*"[A-Za-z]{2}"' | head -n1 | sed -E 's/.*"([A-Za-z]{2})".*/\1/')"
 fi
 
-push_kuma "$PUSH_URL" "up" "Sunlogin: IP=$ip ($country/$region/$city) (${prefix}Egress:$loc)" "$ping"
+status="down"
+if [[ -n "$country" ]]; then
+  status="up"
+else
+  country="UNK"
+fi
+
+push_kuma "$PUSH_URL" "$status" "Sunlogin: Region:$country" "$ping"

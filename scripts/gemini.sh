@@ -19,14 +19,17 @@ body="$(curl_text "$GEMINI_URL" -A "$GEMINI_UA" -H "Accept-Language: $GEMINI_LAN
 ec=$?
 ping="$(elapsed_ms "$start")"
 
-status="down"
-msg="Google Gemini: No"
-
+region=""
 if [[ $ec -eq 0 && "$body" == *"45631641,null"* ]]; then
   region="$(printf '%s' "$body" | grep -oE ',2,1,200,"[A-Z]{3}"' | head -n1 | sed -E 's/.*"([A-Z]{3})".*/\1/')"
-  [[ -z "$region" ]] && region="UNK"
-  status="up"
-  msg="Google Gemini: Yes (Region: $region)"
 fi
 
+status="down"
+if [[ -n "$region" ]]; then
+  status="up"
+else
+  region="UNK"
+fi
+
+msg="Google Gemini: Region:$region"
 push_kuma "$PUSH_URL" "$status" "$msg" "$ping"
