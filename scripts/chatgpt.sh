@@ -127,11 +127,10 @@ region="$country_code"
 status="down"
 if [[ -n "$region" && "$region" != "UNK" ]]; then
   status="up"
+  msg="ChatGPT: Yes (Region: $region)"
 else
-  region="UNK"
+  msg="ChatGPT: Failed"
 fi
-
-msg="ChatGPT: Region:$region"
 
 if [[ "${DEBUG_CHATGPT:-0}" == "1" ]]; then
   echo "$msg"

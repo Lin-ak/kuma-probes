@@ -25,9 +25,10 @@ fi
 status="down"
 if [[ -n "$region" ]]; then
   status="up"
+  msg="XXX: Yes (Region: $region)"
 else
-  region="UNK"
+  msg="XXX: Failed"
 fi
 
 # 3) 推送到 Kuma
-push_kuma "$PUSH_URL" "$status" "XXX: Region:$region" "$ping"
+push_kuma "$PUSH_URL" "$status" "$msg" "$ping"

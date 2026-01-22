@@ -17,9 +17,9 @@ ping="$(elapsed_ms "$start")"
 status="down"
 if [[ -n "$region" ]]; then
   status="up"
+  msg="Claude: Yes (Region: $region)"
 else
-  region="UNK"
+  msg="Claude: Failed"
 fi
 
-msg="Claude: Region:$region"
 push_kuma "$PUSH_URL" "$status" "$msg" "$ping"

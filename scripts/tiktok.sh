@@ -22,13 +22,13 @@ ec=$?
 ping="$(elapsed_ms "$start")"
 
 if [[ $ec -ne 0 ]]; then
-  push_kuma "$PUSH_URL" "down" "TikTok: Region:UNK" "$ping"
+  push_kuma "$PUSH_URL" "down" "TikTok: Failed" "$ping"
   exit 0
 fi
 
 region="$(printf '%s' "$html" | extract_region)"
 if [[ -n "$region" ]]; then
-  push_kuma "$PUSH_URL" "up" "TikTok: Region:$region" "$ping"
+  push_kuma "$PUSH_URL" "up" "TikTok: Yes (Region: $region)" "$ping"
   exit 0
 fi
 
@@ -41,13 +41,13 @@ ec2=$?
 ping2="$(elapsed_ms "$start2")"
 
 if [[ $ec2 -ne 0 ]]; then
-  push_kuma "$PUSH_URL" "down" "TikTok: Region:UNK" "$ping2"
+  push_kuma "$PUSH_URL" "down" "TikTok: Failed" "$ping2"
   exit 0
 fi
 
 region2="$(printf '%s' "$html2" | extract_region)"
 if [[ -n "$region2" ]]; then
-  push_kuma "$PUSH_URL" "up" "TikTok: Region:$region2" "$ping2"
+  push_kuma "$PUSH_URL" "up" "TikTok: Yes (Region: $region2)" "$ping2"
 else
-  push_kuma "$PUSH_URL" "down" "TikTok: Region:UNK" "$ping2"
+  push_kuma "$PUSH_URL" "down" "TikTok: Failed" "$ping2"
 fi

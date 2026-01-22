@@ -15,7 +15,7 @@ ip="$(dig +short A "$HOST" | head -n1)"
 ping="$(elapsed_ms "$start")"
 
 if [[ -z "$ip" ]]; then
-  push_kuma "$PUSH_URL" "down" "Sunlogin: Region:UNK" "$ping"
+  push_kuma "$PUSH_URL" "down" "Sunlogin: Failed" "$ping"
   exit 0
 fi
 
@@ -23,7 +23,7 @@ fi
 geo="$(curl_text "https://free.freeipapi.com/api/json/$ip")"
 ec=$?
 if [[ $ec -ne 0 ]]; then
-  push_kuma "$PUSH_URL" "down" "Sunlogin: Region:UNK" "$ping"
+  push_kuma "$PUSH_URL" "down" "Sunlogin: Failed" "$ping"
   exit 0
 fi
 
@@ -36,8 +36,9 @@ fi
 status="down"
 if [[ -n "$country" ]]; then
   status="up"
+  msg="Sunlogin: Yes (Region: $country)"
 else
-  country="UNK"
+  msg="Sunlogin: Failed"
 fi
 
-push_kuma "$PUSH_URL" "$status" "Sunlogin: Region:$country" "$ping"
+push_kuma "$PUSH_URL" "$status" "$msg" "$ping"

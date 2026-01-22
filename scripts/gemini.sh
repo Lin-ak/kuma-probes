@@ -27,9 +27,9 @@ fi
 status="down"
 if [[ -n "$region" ]]; then
   status="up"
+  msg="Google Gemini: Yes (Region: $region)"
 else
-  region="UNK"
+  msg="Google Gemini: Failed"
 fi
 
-msg="Google Gemini: Region:$region"
 push_kuma "$PUSH_URL" "$status" "$msg" "$ping"
