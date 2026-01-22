@@ -46,95 +46,102 @@ curl_body_and_code() {
   CURL_EC=$ec
 }
 
-curl_http_code() {
-  local url="$1" ua="$2"; shift 2
-  local out ec
-  out="$(curl "${BASE_ARGS[@]}" -A "$ua" -o /dev/null -w '%{http_code}' "$@" "$url" 2>/dev/null)"
-  ec=$?
-  if [[ "$out" =~ ([0-9]{3})$ ]]; then
-    CURL_CODE="${BASH_REMATCH[1]}"
-  else
-    CURL_CODE=""
-  fi
-  CURL_EC=$ec
-}
-
-get_country_code() {
-  local url out loc
-  for url in "$@"; do
-    out="$(curl "${BASE_ARGS[@]}" "$url" 2>/dev/null)" || continue
-    loc="$(printf '%s\n' "$out" | awk -F= '/^loc=/{print $2; exit}')"
-    if [[ -n "$loc" ]]; then
-      printf '%s' "$loc"
+support_gpt() {
+  local loc="$1"
+  local support_list=(
+    AL DZ AD AO AG AR AM AU AT AZ BS BD BB BE BZ BJ BT BA BW BR BG BF CV CA CL CO KM CR HR CY DK
+    DJ DM DO EC SV EE FJ FI FR GA GM GE DE GH GR GD GT GN GW GY HT HN HU IS IN ID IQ IE IL IT JM
+    JP JO KZ KE KI KW KG LV LB LS LR LI LT LU MG MW MY MV ML MT MH MR MU MX MC MN ME MA MZ MM NA
+    NR NP NL NZ NI NE NG MK NO OM PK PW PA PG PE PH PL PT QA RO RW KN LC VC WS SM ST SN RS SC SL
+    SG SK SI SB ZA ES LK SR SE CH TH TG TO TT TN TR TV UG AE US UY VU ZM BO BN CG CZ VA FM MD PS
+    KR TW TZ TL GB
+  )
+  local item
+  for item in "${support_list[@]}"; do
+    if [[ "$loc" == "$item" ]]; then
       return 0
     fi
   done
-  printf 'UNK'
+  return 1
+}
+
+get_loc_from_trace() {
+  local url="$1" ua="$2"; shift 2
+  local loc
+  curl_body_and_code "$url" "$ua" "$@"
+  if [[ $CURL_EC -ne 0 ]]; then
+    return 1
+  fi
+  loc="$(printf '%s\n' "$CURL_BODY" | awk -F= '/^loc=/{print $2; exit}')"
+  if [[ -n "$loc" ]]; then
+    printf '%s' "$loc"
+    return 0
+  fi
+  return 1
 }
 
 start="$(ms_now)"
 
-api_headers=(
-  -H "authority: api.openai.com"
+trace_headers=(
   -H "accept: */*"
   -H "accept-language: zh-CN,zh;q=0.9"
-  -H "authorization: Bearer null"
-  -H "content-type: application/json"
-  -H "origin: https://platform.openai.com"
-  -H "referer: https://platform.openai.com/"
-  -H "sec-ch-ua: $CHATGPT_SECCH_UA"
-  -H "sec-ch-ua-mobile: ?0"
-  -H 'sec-ch-ua-platform: "Windows"'
-  -H "sec-fetch-dest: empty"
-  -H "sec-fetch-mode: cors"
-  -H "sec-fetch-site: same-site"
-)
-
-curl_body_and_code "https://api.openai.com/compliance/cookie_requirements" "$CHATGPT_UA_BROWSER" "${api_headers[@]}"
-api_ec=$CURL_EC
-api_code=$CURL_CODE
-api_body=$CURL_BODY
-hit_unsupported="false"
-if [[ $api_ec -eq 0 && "$api_body" == *unsupported_country* ]]; then
-  hit_unsupported="true"
-fi
-
-fav_headers=(
-  -H "accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
-  -H "origin: https://chatgpt.com"
-  -H "referer: https://chatgpt.com/"
   -H "sec-ch-ua: $CHATGPT_SECCH_UA"
   -H "sec-ch-ua-mobile: ?0"
   -H 'sec-ch-ua-platform: "Windows"'
 )
 
-curl_http_code "https://chatgpt.com/favicon.ico" "$CHATGPT_UA_BROWSER" "${fav_headers[@]}"
-fav_ec=$CURL_EC
-fav_code=$CURL_CODE
-web_blocked="false"
-if [[ $fav_ec -eq 0 && "$fav_code" == "403" ]]; then
-  web_blocked="true"
-fi
+region=""
+trace_urls=(
+  "https://chat.openai.com/cdn-cgi/trace"
+  "https://chatgpt.com/cdn-cgi/trace"
+  "https://www.cloudflare.com/cdn-cgi/trace"
+)
+for url in "${trace_urls[@]}"; do
+  if region="$(get_loc_from_trace "$url" "$CHATGPT_UA_BROWSER" "${trace_headers[@]}")"; then
+    break
+  fi
+done
 
-country_code="$(get_country_code \
-  "https://chat.openai.com/cdn-cgi/trace" \
-  "https://chatgpt.com/cdn-cgi/trace" \
-  "https://www.cloudflare.com/cdn-cgi/trace")"
+web_headers=(
+  -H "accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+  -H "accept-language: zh-CN,zh;q=0.9"
+  -H "upgrade-insecure-requests: 1"
+  -H "sec-ch-ua: $CHATGPT_SECCH_UA"
+  -H "sec-ch-ua-mobile: ?0"
+  -H 'sec-ch-ua-platform: "Windows"'
+)
+
+curl_body_and_code "https://chat.openai.com" "$CHATGPT_UA_BROWSER" "${web_headers[@]}"
+web_ec=$CURL_EC
+web_code=$CURL_CODE
+web_body=$CURL_BODY
 
 ping="$(elapsed_ms "$start")"
 
-region="$country_code"
+region_uc="$(printf '%s' "$region" | tr '[:lower:]' '[:upper:]')"
+region_lc="$(printf '%s' "$region" | tr '[:upper:]' '[:lower:]')"
+
 status="down"
-if [[ -n "$region" && "$region" != "UNK" ]]; then
-  status="up"
-  msg="ChatGPT: Yes (Region: $region)"
-else
-  msg="ChatGPT: Failed"
+msg="ChatGPT: Failed"
+
+if [[ $web_ec -ne 0 ]]; then
+  msg="ChatGPT: Failed (Network)"
+elif [[ "$web_body" == *"VPN"* ]]; then
+  msg="ChatGPT: VPN Blocked${region_uc:+ (Region: $region_uc)}"
+elif [[ "$web_code" == "429" ]]; then
+  msg="ChatGPT: Restricted (429)${region_uc:+ (Region: $region_uc)}"
+elif [[ -n "$region_uc" ]]; then
+  if support_gpt "$region_uc"; then
+    status="up"
+    msg="ChatGPT: Yes (Region: $region_uc)"
+  else
+    msg="ChatGPT: No (Region: $region_uc)"
+  fi
 fi
 
 if [[ "${DEBUG_CHATGPT:-0}" == "1" ]]; then
   echo "$msg"
-  echo "region=$region pingMs=$ping"
+  echo "region=$region_lc pingMs=$ping http=$web_code"
 fi
 
 push_kuma "$PUSH_URL" "$status" "$msg" "$ping"
